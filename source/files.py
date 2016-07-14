@@ -389,151 +389,8 @@ class File:
             **kwargs
         )
 
-    def _compare_equality_rough(self, other, inverse=False):
-        result = False
-        truth = not inverse
-
-        self_size = self.property(size=True)
-        other_size = other.property(size=True)
-
-        if (self_size == other_size) is truth:
-            self_modified_time = self.property(modified=True)
-            other_modified_time = other.property(modified=True)
-
-            if (self_modified_time == other_modified_time) is truth:
-                result = True
-            else:
-                self_checksum = self.property(checksum=True)
-                other_checksum = other.property(checksum=True)
-
-                if (self_checksum == other_checksum) is truth:
-                    result = True
-
-        return result
-
-    def _compare_equality_thorough(self, other, extra=False, inverse=False):
-        checksum_kwargs = {
-            'checksum': True,
-            'checksum_algorithm': 'ripemd160' if extra else 'crc32'
-        }
-
-        self_checksum = self.property(**checksum_kwargs)
-        other_checksum = other.property(**checksum_kwargs)
-
-        return (self_checksum == other_checksum) is not inverse
-
-    def _compare_equality_child(self, other, thorough=False, extra=False,
-                                inverse=False):
-
-        if thorough:
-            result = self._compare_equality_thorough(
-                other,
-                extra=extra,
-                inverse=inverse
-            )
-
-        else:
-            result = self._compare_equality_rough(
-                other,
-                inverse=inverse
-            )
-
-        return result
-
-    def _compare_equality_children(self, other, self_children, other_children,
-                                   inverse=False):
-
-        result = True
-        truth = not inverse
-
-        if (len(self_children) == len(other_children)) is truth:
-            for self_path, other_path in zip(self_children, other_children):
-                if (self_path == other_path) is not truth:
-                    result = False
-                    break
-
-                self_file_instance = self.child(self_path, instance=True)
-                other_file_instance = other.child(other_path, instance=True)
-                share_equal_truth = self_file_instance._compare_equality_rough(
-                    other_file_instance,
-                    inverse=inverse
-                )
-
-                if not share_equal_truth:
-                    result = False
-                    break
-
-        else:
-            result = False
-
-        return result
-
-    def _compare_equality(self, other, thorough=False, extra=False,
-                          inverse=False):
-
-        result = True
-        truth = not inverse
-
-        if self._compare_sameness(other) is not truth:
-            self_directory = self._directory
-            other_directory = other._directory
-
-            if self_directory and other_directory:
-                if thorough:
-                    result = self._compare_equality_thorough(
-                        other,
-                        extra=extra,
-                        inverse=inverse
-                    )
-
-                else:
-                    childrens_kwargs = {
-                        'recursive': True,
-                        'separate': True,
-                        'files': True,
-                        'directories': False,
-                        'relatives': True
-                    }
-
-                    self_childrens = self.children(**childrens_kwargs)
-                    other_childrens = other.children(**childrens_kwargs)
-                    paired_childrens = zip(self_childrens, other_childrens)
-
-                    for self_children, other_children in paired_childrens:
-                        self_children_path = self_children['path']
-                        other_children_path = other_children['path']
-                        paths_equal = self_children_path == other_children_path
-
-                        if paths_equal is not truth:
-                            result = False
-                            break
-
-                        children_equal_truth = self._compare_equality_children(
-                            other,
-                            self_children['files'],
-                            other_children['files'],
-                            inverse=inverse
-                        )
-
-                        if not children_equal_truth:
-                            result = False
-                            break
-
-            elif not self_directory and not other_directory:
-                result = self._compare_equality_child(
-                    other,
-                    thorough=thorough,
-                    extra=extra,
-                    inverse=inverse
-                )
-
-            else:
-                result = False
-
-        return result
-
-    def _compare_equality_directory_new(self, comparator, shallow=True,
-                                        recursive=True, inverse=False):
+    def _compare_equality_directory(self, comparator, shallow=True,
+                                    recursive=True, inverse=False):
 
         truth = not inverse
         result = (
@@ -557,7 +414,7 @@ class File:
         # for inequality, most can be equal
         if recursive and ((not result and not truth) or (result and truth)):
             for sub_comparator in comparator.subdirs.values():
-                result = self._compare_equality_directory_new(
+                result = self._compare_equality_directory(
                     sub_comparator,
                     shallow=shallow,
                     recursive=recursive,
@@ -569,8 +426,8 @@ class File:
 
         return result
 
-    def _compare_equality_new(self, other, shallow=True, recurse=True,
-                              inverse=False):
+    def _compare_equality(self, other, shallow=True, recurse=True,
+                          inverse=False):
 
         result = True
 
@@ -580,7 +437,7 @@ class File:
 
             if self_is_directory and other_is_directory:
                 comparator = filecmp.dircmp(self.full_path, other.full_path)
-                result = self._compare_equality_directory_new(
+                result = self._compare_equality_directory(
                     comparator,
                     shallow=shallow,
                     recursive=recurse,
@@ -1047,7 +904,7 @@ class File:
 
     def compare(self, other, method='equality', **kwargs):
         if method == 'equality':
-            comparison = self._compare_equality_new(other, **kwargs)
+            comparison = self._compare_equality(other, **kwargs)
         elif method == 'sizes':
             comparison = self._compare_sizes(other, **kwargs)
         elif method == 'counts':
