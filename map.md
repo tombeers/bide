@@ -19,6 +19,6 @@
 - support `File('./../.././../file')`
 - dry in tests, particularly TestPath
 - implement `.__contains__` for `Path`
-- implement `.__contains__`, `.__iter__`, `.__getitem__`, `.__setitem__`,
-  `.__delitem__` and `.__index__` and  for `File`
+- implement `.__contains__`, `.__iter__`, `.__next__`, `.__getitem__`,
+  `.__setitem__`, `.__delitem__` and `.__index__` and  for `File`
 - rename `hide_extensions`; ambiguous

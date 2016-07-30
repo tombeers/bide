@@ -3,6 +3,7 @@ import fnmatch
 import functools
 import os
 import posixpath
+import ntpath
 import re
 import shutil
 
@@ -38,7 +39,7 @@ class File:
     '''
 
     # # break into smaller functions
-    def __init__(self, path='/', root=None, match=False, relative=True):
+    def __init__(self, path='/', root=None, match=False):
         '''
             :param path: Should always be given as a POSIX path (such as those
                          used on GNU/Linux, BSD, Mac OS X, etc). That is, paths
@@ -80,14 +81,6 @@ class File:
                           alphabetically is chosen. If no match is found,
                           :param:`path` will not be changed.
             :type match: :class:`bool`
-
-            :param relative: This enables relative paths to be given to
-                             :param:`path` if no :param:`root` is otherwise
-                             given. In the case of `./`, for example,
-                             :param:`root` will be automatically set to the
-                             current directory and :param:`path` will be set as
-                             '/'. Currently, '..' is not supported.
-            :type relative: :class:`bool`
         '''
 
         if hasattr(root, 'path'):
@@ -97,7 +90,12 @@ class File:
             if root:
                 self.root = root
             else:
-                if relative and path.startswith(os.curdir):
+                relative = (
+                    path.startswith(os.curdir) or
+                    not path.startswith((posixpath.sep, ntpath.sep))
+                )
+
+                if relative:
                     root_reference = os.curdir
                     path = path.lstrip(os.curdir)
                 else:
@@ -893,7 +891,7 @@ class File:
             property_dictionary.update(update_dictionary)
 
         if len(property_dictionary) == 1:
-            returning = property_dictionary.values()[0]
+            returning = list(property_dictionary.values())[0]
         else:
             returning = property_dictionary
 
@@ -970,35 +968,34 @@ class File:
     def read(self, generator=True, lines=False, blocks=False, reverse=False,
              binary=False, length=16384):
 
-        if self._file:
-            if generator and reverse:
-                initial_return = self._riter(
-                    blocks=not lines if lines else blocks,
-                    binary=binary,
-                    length=length
-                )
+        if generator and reverse:
+            initial_return = self._riter(
+                blocks=not lines if lines else blocks,
+                binary=binary,
+                length=length
+            )
 
-            else:
-                mode = 'r{}'.format('b' if binary else '')
+        else:
+            mode = 'r{}'.format('b' if binary else '')
 
-                with open(self.full_path, mode) as opened:
-                    if generator and blocks:
-                        # from: http:stackoverflow.com/a/7829658
-                        partial = functools.partial(opened.read, length)
-                        initial_return = iter(partial, b'')
-                    elif generator:
-                        initial_return = opened
-                    elif lines:
-                        initial_return = opened.readlines()
-                    else:
-                        initial_return = opened.read()
+            with open(self.full_path, mode) as opened:
+                if generator and blocks:
+                    # from: http:stackoverflow.com/a/7829658
+                    partial = functools.partial(opened.read, length)
+                    initial_return = iter(partial, b'')
+                elif generator:
+                    initial_return = opened
+                elif lines:
+                    initial_return = opened.readlines()
+                else:
+                    initial_return = opened.read()
 
-            if not generator and lines and reverse:
-                returning = reversed(initial_return)
-            else:
-                returning = initial_return
+        if not generator and lines and reverse:
+            returning = reversed(initial_return)
+        else:
+            returning = initial_return
 
-            return returning
+        return returning
 
     def remove(self):
         if self._existence:
