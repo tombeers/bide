@@ -2,8 +2,6 @@
     Various utility functions, mostly for working with files and paths.
 '''
 
-
-
 import base64
 import collections
 import hashlib
@@ -19,6 +17,7 @@ import urllib.parse
 import zipfile
 import zlib
 
+
 try:
     import flask_scrypt
 except ImportError:
@@ -28,7 +27,6 @@ try:
     import flask_bcrypt
 except ImportError:
     pass
-
 
 
 _POSIX_SEPARATOR = posixpath.sep

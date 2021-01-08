@@ -1,7 +1,6 @@
 bide
 ----
 
-Easy, cross-platform interactions with paths, files and their content. More
-information coming soon.
+*Note: this library has been discontinued.*
 
-Note that this library is currently in its alpha stage of development.
+Easy, cross-platform interactions with paths, files and their content.

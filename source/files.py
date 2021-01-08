@@ -10,7 +10,6 @@ import shutil
 from . import utilities
 
 
-
 class File:
 
     '''
